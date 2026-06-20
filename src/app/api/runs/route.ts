@@ -4,6 +4,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { CreateRunRequestSchema } from "@/lib/schema";
 import { orchestrate } from "@/lib/orchestrator";
 import type { Edge, Node } from "@xyflow/react";
+import { tasks } from "@trigger.dev/sdk/v3";
 
 export const maxDuration = 60; // Vercel Hobby max; heavy work runs via Trigger.dev + after()
 
@@ -72,12 +73,33 @@ export async function POST(req: Request) {
     });
   }
 
-  // In serverless environments like Vercel, background tasks must be registered
-  // via after to prevent the execution container from suspending immediately
-  // after the response is returned.
-  after(() => {
-    void runExecution(run.id, nodes, edges, scope);
-  });
+  function isTriggerConfigured() {
+    return Boolean(
+      process.env.NEXTFLOW_USE_TRIGGER === "true" &&
+      process.env.TRIGGER_SECRET_KEY &&
+      process.env.TRIGGER_PROJECT_ID
+    );
+  }
+
+  if (isTriggerConfigured()) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    await tasks.trigger("run-workflow", {
+      runId: run.id,
+      workflowId,
+      nodes,
+      edges,
+      scope,
+      nodePayloads: {},
+      appUrl,
+    });
+  } else {
+    // In serverless environments like Vercel, background tasks must be registered
+    // via after to prevent the execution container from suspending immediately
+    // after the response is returned.
+    after(() => {
+      void runExecution(run.id, nodes, edges, scope);
+    });
+  }
 
   return NextResponse.json({ runId: run.id });
 }
