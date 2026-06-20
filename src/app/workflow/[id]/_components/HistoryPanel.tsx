@@ -296,16 +296,6 @@ function safeJsonSummary(json: string): string {
         }
       }
       
-      if ("outputText" in clone && typeof clone.outputText === "string") {
-        return clone.outputText;
-      }
-      if ("captured" in clone && typeof clone.captured === "string") {
-        return clone.captured;
-      }
-      if ("outputImage" in clone && typeof clone.outputImage === "string") {
-        return clone.outputImage;
-      }
-      
       return JSON.stringify(clone, null, 2);
     }
     return String(parsed);
