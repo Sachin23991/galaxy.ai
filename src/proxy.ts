@@ -5,6 +5,7 @@ const isPublic = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks/clerk(.*)",
+  "/api/runs/webhook(.*)",
 ]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

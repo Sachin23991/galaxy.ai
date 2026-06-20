@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useHistoryStore, type Run, type NodeExecution } from "@/store/useHistoryStore";
 import { CheckCircle2, XCircle, AlertTriangle, Loader2, History, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useWorkflowStore } from "@/store/useWorkflowStore";
 
 interface Props {
   workflowId: string;
@@ -88,6 +89,8 @@ function formatRunTimestamp(dateStr: string) {
 export function HistoryPanel({ workflowId }: Props) {
   const runs = useHistoryStore((s) => s.runs);
   const fetchRuns = useHistoryStore((s) => s.fetchRuns);
+  const nodes = useWorkflowStore((s) => s.nodes);
+  const edges = useWorkflowStore((s) => s.edges);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [now, setNow] = useState(0);
 
@@ -162,7 +165,7 @@ export function HistoryPanel({ workflowId }: Props) {
                           No node executions recorded.
                         </div>
                       ) : (
-                        r.executions.map((e) => (
+                        sortExecutions(r.executions, nodes, edges).map((e) => (
                           <ExecutionRow key={e.id} exec={e} now={now} />
                         ))
                       )}
@@ -235,11 +238,52 @@ function ExecutionRow({ exec, now }: { exec: NodeExecution; now: number }) {
   );
 }
 
+function sortExecutions(
+  executions: NodeExecution[],
+  nodes: Array<{ id: string }>,
+  edges: Array<{ source: string; target: string }>,
+): NodeExecution[] {
+  const adj = new Map<string, string[]>();
+  const indeg = new Map<string, number>();
+  for (const n of nodes) {
+    adj.set(n.id, []);
+    indeg.set(n.id, 0);
+  }
+  for (const e of edges) {
+    if (!adj.has(e.source) || !indeg.has(e.target)) continue;
+    adj.get(e.source)!.push(e.target);
+    indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
+  }
+  const levels: Record<string, number> = {};
+  const q: string[] = [];
+  for (const n of nodes) {
+    if ((indeg.get(n.id) ?? 0) === 0) {
+      levels[n.id] = 0;
+      q.push(n.id);
+    }
+  }
+  while (q.length) {
+    const u = q.shift()!;
+    for (const v of adj.get(u) ?? []) {
+      levels[v] = Math.max(levels[v] ?? -1, (levels[u] ?? 0) + 1);
+      if ((indeg.get(v) ?? 0) - 1 === 0) q.push(v);
+      indeg.set(v, (indeg.get(v) ?? 0) - 1);
+    }
+  }
+
+  return [...executions].sort((a, b) => {
+    const lvlA = levels[a.nodeId] ?? 999;
+    const lvlB = levels[b.nodeId] ?? 999;
+    if (lvlA !== lvlB) return lvlA - lvlB;
+    return a.nodeType.localeCompare(b.nodeType);
+  });
+}
+
+
 function safeJsonSummary(json: string): string {
   try {
     const parsed = JSON.parse(json);
     if (parsed && typeof parsed === "object") {
-      // Custom cleanups
       const clone = { ...parsed } as Record<string, unknown>;
       for (const key of Object.keys(clone)) {
         const val = clone[key];
