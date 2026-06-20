@@ -5,7 +5,7 @@ import { CreateRunRequestSchema } from "@/lib/schema";
 import { orchestrate } from "@/lib/orchestrator";
 import type { Edge, Node } from "@xyflow/react";
 
-export const maxDuration = 300; // 5 min — accommodates 30s crop + parallel siblings
+export const maxDuration = 60; // Vercel Hobby max; heavy work runs via Trigger.dev + after()
 
 export async function POST(req: Request) {
   const user = await requireCurrentUser();

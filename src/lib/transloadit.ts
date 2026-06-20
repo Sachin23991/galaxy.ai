@@ -19,11 +19,9 @@ export interface TransloaditSignature {
 export function signTransloadit(
   opts: { templateId?: string; fields?: Record<string, string> } = {},
 ): TransloaditSignature {
-  const expires =
-    new Date(Date.now() + 60 * 60 * 1000) // 1h
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", "Z") + "+00:00";
+  const d = new Date(Date.now() + 60 * 60 * 1000); // 1h from now
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const expires = `${d.getUTCFullYear()}/${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}+00:00`;
 
   const paramsJson = JSON.stringify({
     auth: { key: AUTH_KEY, expires },

@@ -288,6 +288,9 @@ async function runLeaf(
   node: Node,
   inputBundle: Record<string, unknown>,
 ): Promise<unknown> {
+  const secretKey = process.env.TRIGGER_SECRET_KEY ?? "";
+  const keyType = secretKey.startsWith("tr_prod_") ? "PRODUCTION" : secretKey.startsWith("tr_dev_") ? "DEVELOPMENT" : "UNKNOWN";
+
   if (node.type === "cropImage") {
     const data = node.data as { x: number; y: number; w: number; h: number; inputImage?: string };
     const payload = {
@@ -299,18 +302,22 @@ async function runLeaf(
     };
 
     if (isTriggerConfigured()) {
+      console.log(`[NextFlow] Triggering crop-image task on Trigger.dev (Env: ${keyType}, Project: ${process.env.TRIGGER_PROJECT_ID})`);
       const handle = await tasks.trigger<typeof cropImageTask>("crop-image", {
         runId,
         nodeId: node.id,
         ...payload,
       });
+      console.log(`[NextFlow] Triggered crop-image task. Run ID: ${handle.id}. Polling...`);
       const runResult = await runs.poll(handle.id);
+      console.log(`[NextFlow] Crop-image task completed with status: ${runResult.status}`);
       if (runResult.status === "COMPLETED") {
         return runResult.output;
       }
       throw new Error(runResult.error?.message ?? `Trigger task failed with status ${runResult.status}`);
     }
 
+    console.log(`[NextFlow] Executing crop-image task in-process`);
     return cropImageLeaf(payload);
   }
 
@@ -337,18 +344,22 @@ async function runLeaf(
     };
 
     if (isTriggerConfigured()) {
+      console.log(`[NextFlow] Triggering gemini task on Trigger.dev (Env: ${keyType}, Project: ${process.env.TRIGGER_PROJECT_ID})`);
       const handle = await tasks.trigger<typeof geminiTask>("gemini", {
         runId,
         nodeId: node.id,
         ...payload,
       });
+      console.log(`[NextFlow] Triggered gemini task. Run ID: ${handle.id}. Polling...`);
       const runResult = await runs.poll(handle.id);
+      console.log(`[NextFlow] Gemini task completed with status: ${runResult.status}`);
       if (runResult.status === "COMPLETED") {
         return runResult.output;
       }
       throw new Error(runResult.error?.message ?? `Trigger task failed with status ${runResult.status}`);
     }
 
+    console.log(`[NextFlow] Executing gemini task in-process`);
     return geminiLeaf(payload);
   }
 
