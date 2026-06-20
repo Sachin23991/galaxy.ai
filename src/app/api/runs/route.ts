@@ -84,13 +84,24 @@ export async function POST(req: Request) {
   if (isTriggerConfigured()) {
     const host = req.headers.get("host") || "localhost:3000";
     const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+    // On Vercel, VERCEL_URL has no protocol prefix. NEXT_PUBLIC_APP_URL takes priority.
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${protocol}://${host}`);
+
+    // run-workflow.ts expects scope as "full" string OR {type:"partial"|"single",...}
+    // The Zod schema always produces {type:"full"}, so we convert it here.
+    const triggerScope =
+      scope.type === "full"
+        ? ("full" as const)
+        : scope;
+
     await tasks.trigger("run-workflow", {
       runId: run.id,
       workflowId,
       nodes,
       edges,
-      scope,
+      scope: triggerScope,
       nodePayloads: {},
       appUrl,
     });

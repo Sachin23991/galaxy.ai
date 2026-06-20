@@ -182,6 +182,7 @@ export function HistoryPanel({ workflowId }: Props) {
 }
 
 function ExecutionRow({ exec, now }: { exec: NodeExecution; now: number }) {
+  const [open, setOpen] = useState(false);
   const dur =
     exec.startedAt && exec.finishedAt
       ? new Date(exec.finishedAt).getTime() - new Date(exec.startedAt).getTime()
@@ -191,52 +192,104 @@ function ExecutionRow({ exec, now }: { exec: NodeExecution; now: number }) {
   const inputSummary = exec.inputsJson ? safeJsonSummary(exec.inputsJson) : null;
   const outputSummary = exec.outputJson ? safeJsonSummary(exec.outputJson) : null;
 
+  const nodeTypeColors: Record<string, string> = {
+    requestInputs: "bg-amber-50 border-amber-200 text-amber-700",
+    cropImage: "bg-cyan-50 border-cyan-200 text-cyan-700",
+    gemini: "bg-violet-50 border-violet-200 text-violet-700",
+    response: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  };
+  const typeColor = nodeTypeColors[exec.nodeType] ?? "bg-gray-50 border-gray-200 text-gray-700";
+
   return (
-    <div className="rounded-xl border border-gray-250/60 bg-white/95 p-3 shadow-sm hover:shadow transition-all space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold font-mono text-gray-700 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-150 flex-1 truncate">
-          {exec.nodeId}
-        </span>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+    <div className={cn(
+      "rounded-xl border bg-white/95 shadow-sm transition-all overflow-hidden",
+      open ? "border-violet-200 shadow-md" : "border-gray-200 hover:border-gray-300 hover:shadow"
+    )}>
+      {/* Header — always clickable */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full text-left p-3 flex items-center gap-2"
+      >
+        <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border", typeColor)}>
           {exec.nodeType}
         </span>
+        <span className="text-[10px] font-bold font-mono text-gray-600 flex-1 truncate">
+          {exec.nodeId}
+        </span>
         {dur !== null && (
-          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full shrink-0">
             {dur < 1000 ? `${Math.round(dur)}ms` : `${(dur / 1000).toFixed(1)}s`}
           </span>
         )}
         <StatusBadge status={exec.status} />
-      </div>
-      
-      {inputSummary && (
-        <div className="text-[10px] text-gray-500">
-          <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider mb-0.5 font-sans">Inputs</span>
-          <pre className="bg-gray-50/50 p-2 rounded-lg font-mono text-[9px] leading-relaxed border border-gray-100 overflow-x-auto max-w-full whitespace-pre-wrap">
-            {inputSummary}
-          </pre>
-        </div>
-      )}
-      
-      {outputSummary && (
-        <div className="text-[10px] text-gray-500">
-          <span className="font-bold text-emerald-600 block text-[9px] uppercase tracking-wider mb-0.5 font-sans">Output</span>
-          <pre className="bg-emerald-50/30 p-2 rounded-lg font-mono text-[9px] leading-relaxed text-emerald-800 border border-emerald-100/50 overflow-x-auto max-w-full whitespace-pre-wrap font-bold">
-            {outputSummary}
-          </pre>
-        </div>
-      )}
-      
-      {exec.error && (
-        <div className="text-[10px]">
-          <span className="font-bold text-rose-500 block text-[9px] uppercase tracking-wider mb-0.5 font-sans">Error</span>
-          <pre className="bg-rose-50/30 p-2 rounded-lg font-mono text-[9px] leading-relaxed text-rose-700 border border-rose-100 overflow-x-auto max-w-full whitespace-pre-wrap font-bold">
-            {exec.error}
-          </pre>
+        {open ? (
+          <ChevronDown className="size-3.5 text-gray-400 shrink-0" />
+        ) : (
+          <ChevronRight className="size-3.5 text-gray-400 shrink-0" />
+        )}
+      </button>
+
+      {/* Expanded detail */}
+      {open && (
+        <div className="px-3 pb-3 space-y-2.5 border-t border-gray-100 pt-2.5 animate-in fade-in duration-150">
+          {/* Flow trace */}
+          <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+            Input
+            <span className="flex-1 border-t border-dashed border-gray-200" />
+            <span className="w-2 h-2 rounded-full bg-violet-400 inline-block" />
+            Process
+            <span className="flex-1 border-t border-dashed border-gray-200" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+            Output
+          </div>
+
+          {inputSummary ? (
+            <div>
+              <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider mb-1">
+                📥 Inputs
+              </span>
+              <pre className="bg-gray-50 p-2 rounded-lg font-mono text-[9px] leading-relaxed border border-gray-150 overflow-x-auto whitespace-pre-wrap text-gray-700">
+                {inputSummary}
+              </pre>
+            </div>
+          ) : (
+            <div className="text-[9px] text-gray-400 italic">No inputs recorded for this step.</div>
+          )}
+
+          {outputSummary && (
+            <div>
+              <span className="font-bold text-emerald-600 block text-[9px] uppercase tracking-wider mb-1">
+                📤 Output
+              </span>
+              <pre className="bg-emerald-50 p-2 rounded-lg font-mono text-[9px] leading-relaxed text-emerald-800 border border-emerald-100 overflow-x-auto whitespace-pre-wrap font-semibold">
+                {outputSummary}
+              </pre>
+            </div>
+          )}
+
+          {exec.error && (
+            <div>
+              <span className="font-bold text-rose-500 block text-[9px] uppercase tracking-wider mb-1">
+                ❌ Error
+              </span>
+              <pre className="bg-rose-50 p-2 rounded-lg font-mono text-[9px] leading-relaxed text-rose-700 border border-rose-100 overflow-x-auto whitespace-pre-wrap">
+                {exec.error}
+              </pre>
+            </div>
+          )}
+
+          {exec.status === "pending" && (
+            <div className="text-[9px] text-gray-400 italic bg-gray-50 rounded-lg p-2 border border-gray-150">
+              ⏳ This node has not started yet. The workflow may still be running.
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
+
 
 function sortExecutions(
   executions: NodeExecution[],
