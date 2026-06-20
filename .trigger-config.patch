@@ -1,0 +1,8 @@
+﻿diff --git a/OneDrive/Desktop/galaxy/trigger.config.ts b/OneDrive/Desktop/galaxy/trigger.config.ts
+--- a/OneDrive/Desktop/galaxy/trigger.config.ts
++++ b/OneDrive/Desktop/galaxy/trigger.config.ts
+@@ -21 +21,3 @@
+-  dirs: ["./src/trigger"],
++  // Trigger.dev resolves this path from the repository root. The task
++  // definitions live in trigger/jobs (src/trigger is only a placeholder).
++  dirs: ["./trigger/jobs"],

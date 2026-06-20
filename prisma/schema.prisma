@@ -1,0 +1,64 @@
+// Prisma schema for NextFlow.
+// Uses Neon PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  clerkId   String     @unique
+  email     String?
+  name      String?
+  createdAt DateTime   @default(now())
+  workflows Workflow[]
+}
+
+model Workflow {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  nodesJson String   @default("[]")
+  edgesJson String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  runs      Run[]
+
+  @@index([ownerId, updatedAt])
+}
+
+model Run {
+  id           String          @id @default(cuid())
+  workflowId   String
+  workflow     Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status       String          // "running" | "success" | "failed" | "partial"
+  scope        String          // "full" | "partial:<csv>" | "single:<id>"
+  startedAt    DateTime        @default(now())
+  finishedAt   DateTime?
+  triggerRunId String?
+  executions   NodeExecution[]
+
+  @@index([workflowId, startedAt])
+}
+
+model NodeExecution {
+  id         String    @id @default(cuid())
+  runId      String
+  run        Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  nodeId     String
+  nodeType   String
+  status     String    // "pending" | "running" | "success" | "failed"
+  inputsJson String?
+  outputJson String?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  error      String?
+
+  @@index([runId])
+}
