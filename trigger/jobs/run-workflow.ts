@@ -268,10 +268,20 @@ export const runWorkflowTask = task({
 
       if (triggers.length === 0) continue;
       const handles = await Promise.all(triggers);
+      
+      let levelHasError = false;
       handles.forEach((h, i) => {
         const id = triggerIds[i]!;
         results[id] = h.ok ? h.output : { error: h.error };
+        if (!h.ok) {
+          levelHasError = true;
+        }
       });
+
+      if (levelHasError) {
+        // Break out of the loop and don't execute subsequent levels if any node in this level failed
+        break;
+      }
     }
 
     const totalFailed = Object.values(results).some((r) => r && typeof r === "object" && "error" in r);

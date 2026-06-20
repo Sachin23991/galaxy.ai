@@ -47,7 +47,10 @@ export const cropImageTask = task({
         }
         buf = Buffer.from(match[2], "base64");
       } else {
-        const res = await fetch(payload.inputImage);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(payload.inputImage, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`fetch input: HTTP ${res.status}`);
         buf = Buffer.from(await res.arrayBuffer());
       }

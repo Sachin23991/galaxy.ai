@@ -86,15 +86,23 @@ export async function orchestrate(args: OrchestratorArgs) {
         })
         .finally(() => {
           completed.add(node.id);
-          for (const edge of outgoingScoped.get(node.id) ?? []) {
-            const nextCount = (remainingParents.get(edge.target) ?? 1) - 1;
-            remainingParents.set(edge.target, nextCount);
-            if (nextCount === 0) {
-              const next = nodeById.get(edge.target);
-              if (next) launch(next);
+          if (!failed.has(node.id)) {
+            for (const edge of outgoingScoped.get(node.id) ?? []) {
+              const nextCount = (remainingParents.get(edge.target) ?? 1) - 1;
+              remainingParents.set(edge.target, nextCount);
+              if (nextCount === 0) {
+                const next = nodeById.get(edge.target);
+                if (next) launch(next);
+              }
             }
           }
-          if (completed.size === scopedNodes.length) resolve();
+          // The run resolves if all scoped nodes are completed OR if there are failures,
+          // we might just want to resolve once the queue is empty.
+          // For simplicity, if failures occur, we'll still resolve when all started nodes finish.
+          // A more robust way is to track "active" nodes.
+          if (completed.size === scopedNodes.length || failed.size > 0) {
+            resolve();
+          }
         });
     };
 

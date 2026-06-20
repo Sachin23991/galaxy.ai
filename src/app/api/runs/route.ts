@@ -84,7 +84,7 @@ export async function POST(req: Request) {
   if (isTriggerConfigured()) {
     const host = req.headers.get("host") || "localhost:3000";
     const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
-    const appUrl = `${protocol}://${host}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
     await tasks.trigger("run-workflow", {
       runId: run.id,
       workflowId,

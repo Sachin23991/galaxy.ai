@@ -103,7 +103,12 @@ export const geminiTask = task({
           }
           continue;
         }
-        const r = await fetch(url);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const r = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (!r.ok) continue;
         const buf = Buffer.from(await r.arrayBuffer());
         const mime =
