@@ -82,7 +82,9 @@ export async function POST(req: Request) {
   }
 
   if (isTriggerConfigured()) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const host = req.headers.get("host") || "localhost:3000";
+    const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+    const appUrl = `${protocol}://${host}`;
     await tasks.trigger("run-workflow", {
       runId: run.id,
       workflowId,

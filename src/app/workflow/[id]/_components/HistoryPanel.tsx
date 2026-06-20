@@ -8,8 +8,8 @@ interface Props {
   workflowId: string;
 }
 
-function StatusBadge({ status }: { status: Run["status"] }) {
-  const map: Record<Run["status"], { color: string; icon: React.ReactNode; label: string }> = {
+function StatusBadge({ status }: { status: Run["status"] | NodeExecution["status"] }) {
+  const map: Record<Run["status"] | NodeExecution["status"], { color: string; icon: React.ReactNode; label: string }> = {
     success: {
       color: "bg-emerald-50 text-emerald-700 border-emerald-200/60",
       icon: <CheckCircle2 className="size-3 text-emerald-600" />,
@@ -29,6 +29,11 @@ function StatusBadge({ status }: { status: Run["status"] }) {
       color: "bg-blue-50 text-blue-700 border-blue-200/60",
       icon: <Loader2 className="size-3 text-blue-600 animate-spin" />,
       label: "Running",
+    },
+    pending: {
+      color: "bg-gray-50 text-gray-500 border-gray-250/50",
+      icon: <Clock className="size-3 text-gray-400" />,
+      label: "Pending",
     },
   };
   const m = map[status];
@@ -197,7 +202,7 @@ function ExecutionRow({ exec, now }: { exec: NodeExecution; now: number }) {
             {dur < 1000 ? `${Math.round(dur)}ms` : `${(dur / 1000).toFixed(1)}s`}
           </span>
         )}
-        <StatusBadge status={exec.status === "failed" ? "failed" : exec.status === "running" ? "running" : exec.status === "success" ? "success" : "partial"} />
+        <StatusBadge status={exec.status} />
       </div>
       
       {inputSummary && (
