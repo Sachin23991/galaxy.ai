@@ -1,4 +1,5 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
+import { aptGet } from "@trigger.dev/build/extensions/core";
 
 export default defineConfig({
   project: "proj_mcxpppcozbuvaetsrznv",
@@ -21,4 +22,11 @@ export default defineConfig({
   // Trigger.dev resolves this path from the repository root. The task
   // definitions live in trigger/jobs (src/trigger is only a placeholder).
   dirs: ["./trigger/jobs"],
+  build: {
+    extensions: [
+      // Install ffmpeg so the crop-image task can run on the cloud worker.
+      aptGet({ packages: ["ffmpeg"] }),
+    ],
+  },
 });
+

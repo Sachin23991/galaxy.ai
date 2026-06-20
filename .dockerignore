@@ -1,0 +1,26 @@
+# Trigger.dev uses this file to exclude files from the Docker build context.
+# Without this, node_modules (100MB+) gets uploaded on every deploy.
+
+node_modules
+.next
+.git
+*.log
+*.local
+.env.local
+.env*.local
+
+# Test files
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Dev tools
+.eslintcache
+eslint-report.json
+coverage
+
+# OS files
+.DS_Store
+Thumbs.db
