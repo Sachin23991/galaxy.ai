@@ -32,7 +32,13 @@ export function CanvasShell({ workflow }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    let active = true;
+    requestAnimationFrame(() => {
+      if (active) setMounted(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

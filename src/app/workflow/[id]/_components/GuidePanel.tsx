@@ -11,9 +11,8 @@ export function GuidePanel() {
   const runs = useHistoryStore((s) => s.runs);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Step 1: Has configured fields (has value or added fields)
   const reqNode = nodes.find((n) => n.type === "requestInputs");
-  const hasFields = reqNode && (reqNode.data as any)?.fields?.length > 0;
+  const hasFields = Boolean(reqNode && (reqNode.data as { fields?: unknown[] })?.fields && ((reqNode.data as { fields: unknown[] }).fields.length ?? 0) > 0);
   
   // Step 2: Has middle nodes
   const hasMiddleNode = nodes.some((n) => n.type === "cropImage" || n.type === "gemini");

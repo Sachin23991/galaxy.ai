@@ -15,21 +15,22 @@ export function ResponseNode(props: NodeProps<WorkflowNode>) {
   const isWorkflowRunning = activeRunId !== null;
 
   const [wasRunning, setWasRunning] = useState(false);
-  const [displayedText, setDisplayedText] = useState(cleanedResponse);
+  const [displayedText, setDisplayedText] = useState("");
+  const [prevIsWorkflowRunning, setPrevIsWorkflowRunning] = useState(isWorkflowRunning);
 
-  useEffect(() => {
+  if (isWorkflowRunning !== prevIsWorkflowRunning) {
+    setPrevIsWorkflowRunning(isWorkflowRunning);
     if (isWorkflowRunning) {
       setWasRunning(true);
-      setDisplayedText(""); // Clear text when a new run starts so it feels fresh
+      setDisplayedText("");
     }
-  }, [isWorkflowRunning]);
+  }
 
   useEffect(() => {
     if (cleanedResponse && wasRunning) {
       let currentText = "";
       const words = cleanedResponse.split(" ");
       let index = 0;
-      setDisplayedText("");
 
       const interval = setInterval(() => {
         if (index < words.length) {
@@ -38,21 +39,21 @@ export function ResponseNode(props: NodeProps<WorkflowNode>) {
           index++;
         } else {
           clearInterval(interval);
-          setWasRunning(false); // Reset running flag tracking
+          setWasRunning(false);
         }
-      }, 55); // Smooth typing speed
+      }, 55);
 
       return () => clearInterval(interval);
-    } else {
-      setDisplayedText(cleanedResponse);
     }
   }, [cleanedResponse, wasRunning]);
+
+  const textToShow = wasRunning ? displayedText : cleanedResponse;
 
   return (
     <div
       className={cn(
         "min-w-[260px] max-w-[550px] w-fit nf-node-card text-gray-800 overflow-hidden",
-        (isRunning || (isWorkflowRunning && !displayedText)) && "nf-pulse",
+        (isRunning || (isWorkflowRunning && !textToShow)) && "nf-pulse",
       )}
     >
       <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60">
@@ -64,7 +65,7 @@ export function ResponseNode(props: NodeProps<WorkflowNode>) {
       </div>
       <div className="p-3.5">
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/40 p-2.5 text-xs text-gray-500 min-h-[58px] whitespace-pre-wrap break-words leading-relaxed">
-          {isWorkflowRunning && !displayedText ? (
+          {isWorkflowRunning && !textToShow ? (
             <div className="flex flex-col gap-2 py-2 animate-pulse min-w-[200px]">
               <div className="flex items-center gap-2 text-violet-600 font-semibold mb-1">
                 <Loader2 className="size-3.5 animate-spin" />
@@ -74,8 +75,8 @@ export function ResponseNode(props: NodeProps<WorkflowNode>) {
               <div className="h-2 bg-gray-250/70 rounded w-5/6"></div>
               <div className="h-2 bg-gray-250/70 rounded w-2/3"></div>
             </div>
-          ) : displayedText ? (
-            <span className="text-gray-800 font-semibold">{displayedText}</span>
+          ) : textToShow ? (
+            <span className="text-gray-800 font-semibold">{textToShow}</span>
           ) : (
             <span className="grid min-h-[40px] place-items-center text-center text-gray-400">
               Final workflow result will be captured here

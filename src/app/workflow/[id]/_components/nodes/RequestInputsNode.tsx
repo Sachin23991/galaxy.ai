@@ -75,18 +75,17 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
           reader.readAsDataURL(file);
         });
       } else {
-        // Direct tus upload to Transloadit
+        // Direct upload to Transloadit
         const fd = new FormData();
         fd.append("file", file);
-        const params = new URLSearchParams();
-        for (const [k, v] of Object.entries<string>(sig.params ?? {})) {
-          params.set(k, v);
-        }
+        fd.append("params", sig.params);
+        fd.append("signature", sig.signature);
+
         const up = await fetch(
-          `${sig.tusUrl || "https://tu.transloadit.com"}?${params.toString()}`,
+          "https://upload.transloadit.com/assemblies",
           { method: "POST", body: fd },
         );
-        if (!up.ok) throw new Error("tus upload failed");
+        if (!up.ok) throw new Error("transloadit upload failed");
         const out = await up.json();
         url = out?.results?.file?.[0]?.ssl_url ?? out?.ssl_url ?? "";
       }

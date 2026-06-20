@@ -10,9 +10,10 @@ export async function POST() {
   if (!isTransloaditConfigured()) {
     return NextResponse.json({ fallback: true });
   }
-  const params = signTransloadit();
+  const { params, signature } = signTransloadit();
   return NextResponse.json({
     params,
+    signature,
     tusUrl: "https://tu.transloadit.com",
   });
 }

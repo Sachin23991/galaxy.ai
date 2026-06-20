@@ -12,9 +12,8 @@ const AUTH_KEY = process.env.TRANSLOADIT_AUTH_KEY ?? "";
 const AUTH_SECRET = process.env.TRANSLOADIT_AUTH_SECRET ?? "";
 
 export interface TransloaditSignature {
-  auth: { key: string; expires: string };
-  template_id?: string;
-  fields?: Record<string, string>;
+  params: string;
+  signature: string;
 }
 
 export function signTransloadit(
@@ -25,15 +24,6 @@ export function signTransloadit(
       .toISOString()
       .slice(0, 19)
       .replace("T", "Z") + "+00:00";
-
-  if (!AUTH_KEY || !AUTH_SECRET) {
-    // Offline fallback — caller will use a data URL instead.
-    return {
-      auth: { key: "offline", expires },
-      template_id: opts.templateId,
-      fields: opts.fields,
-    };
-  }
 
   const paramsJson = JSON.stringify({
     auth: { key: AUTH_KEY, expires },
@@ -46,11 +36,8 @@ export function signTransloadit(
     .digest("hex");
 
   return {
-    auth: { key: AUTH_KEY, expires },
-    template_id: opts.templateId,
-    fields: opts.fields,
-    // signature is returned separately; see /api/upload
-    ...({ signature } as object),
+    params: paramsJson,
+    signature,
   };
 }
 

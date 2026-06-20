@@ -18,13 +18,15 @@ function CropNumericInput({
   field: string;
   value: number;
   disabled: boolean;
-  updateNodeData: (id: string, patch: any) => void;
+  updateNodeData: (id: string, patch: Partial<WorkflowNode["data"]>) => void;
 }) {
   const [draft, setDraft] = useState(String(value));
+  const [prevValue, setPrevValue] = useState(value);
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value);
     setDraft(String(value));
-  }, [value]);
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9]/g, "");

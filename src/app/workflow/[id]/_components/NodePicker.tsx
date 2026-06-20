@@ -103,7 +103,15 @@ export function NodePicker({ externalOpen, onExternalClose }: Props) {
   const recent = useWorkflowStore((s) => s.recentNodeTypes);
 
   useEffect(() => {
-    if (externalOpen) setOpen(true);
+    if (externalOpen) {
+      let active = true;
+      requestAnimationFrame(() => {
+        if (active) setOpen(true);
+      });
+      return () => {
+        active = false;
+      };
+    }
   }, [externalOpen]);
 
   const handleClose = () => {
