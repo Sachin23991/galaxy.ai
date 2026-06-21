@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { getOrCreateCurrentUser } from "@/lib/auth";
 import { CreateRunRequestSchema } from "@/lib/schema";
 import { orchestrate } from "@/lib/orchestrator";
 import type { Edge, Node } from "@xyflow/react";
@@ -9,7 +9,8 @@ import { tasks } from "@trigger.dev/sdk/v3";
 export const maxDuration = 60; // Vercel Hobby max; heavy work runs via Trigger.dev + after()
 
 export async function POST(req: Request) {
-  const user = await requireCurrentUser();
+  const user = await getOrCreateCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
   const parsed = CreateRunRequestSchema.safeParse(body);
   if (!parsed.success) {
@@ -242,7 +243,8 @@ function patchForNodeOutput(
 }
 
 export async function GET(req: Request) {
-  const user = await requireCurrentUser();
+  const user = await getOrCreateCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const url = new URL(req.url);
   const workflowId = url.searchParams.get("workflowId");
   if (!workflowId) {

@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Pencil, ArrowRight, Workflow } from "lucide-react";
 import { cn } from "@/lib/cn";
 
+function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
+  if (status === 401) {
+    router.push("/sign-in");
+    return true;
+  }
+  return false;
+}
+
 interface WorkflowRow {
   id: string;
   name: string;
@@ -40,6 +48,7 @@ export function DashboardClient({
   const refresh = async () => {
     try {
       const res = await fetch(`/api/workflows?t=${Date.now()}`, { cache: "no-store" });
+      if (handleAuthError(res.status, router)) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setItems(data.workflows);
@@ -57,10 +66,16 @@ export function DashboardClient({
       signal: controller.signal,
     })
       .then((res) => {
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return null;
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((data: { workflows: WorkflowRow[] }) => setItems(data.workflows))
+      .then((data: { workflows: WorkflowRow[] } | null) => {
+        if (data) setItems(data.workflows);
+      })
       .catch((err: unknown) => {
         if ((err as Error).name !== "AbortError") {
           setError((err as Error).message);
