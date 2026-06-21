@@ -1,12 +1,13 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   ArrowLeft,
   Play,
   Square,
   Clock,
   Save,
+  Check,
   Undo2,
   Redo2,
 } from "lucide-react";
@@ -38,8 +39,10 @@ export function Header({ workflowId, onToggleHistory, historyOpen }: Props) {
   const fetchRuns = useHistoryStore((s) => s.fetchRuns);
 
   const [starting, setStarting] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRunning = activeRunId !== null;
 
@@ -110,23 +113,52 @@ export function Header({ workflowId, onToggleHistory, historyOpen }: Props) {
     }
   };
 
-  const onSave = async () => {
-    setSaving(true);
+  /** Persists the current canvas state. Shows a "Saved ✓" indicator for 1.5s. */
+  const onSave = useCallback(async () => {
+    setSaveState("saving");
     const { name, nodes, edges } = useWorkflowStore.getState();
-    await fetch(`/api/workflows/${workflowId}`, {
+    try {
+      await fetch(`/api/workflows/${workflowId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          nodesJson: JSON.stringify(nodes),
+          edgesJson: JSON.stringify(edges),
+        }),
+      });
+      setSaveState("saved");
+    } catch {
+      setSaveState("idle");
+      return;
+    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setSaveState("idle"), 1500);
+  }, [workflowId]);
+
+  /** Debounced auto-save triggered when the name input changes. */
+  const onNameChange = (value: string) => {
+    setName(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void onSave();
+    }, 600);
+  };
+
+  const navigateBack = () => {
+    // Fire the save in the background — don't await it so navigation is instant.
+    const { name: currentName, nodes: currentNodes, edges: currentEdges } =
+      useWorkflowStore.getState();
+    fetch(`/api/workflows/${workflowId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name,
-        nodesJson: JSON.stringify(nodes),
-        edgesJson: JSON.stringify(edges),
+        name: currentName,
+        nodesJson: JSON.stringify(currentNodes),
+        edgesJson: JSON.stringify(currentEdges),
       }),
+      keepalive: true, // completes even after page unmounts
     }).catch(() => {});
-    setTimeout(() => setSaving(false), 600);
-  };
-
-  const navigateBack = async () => {
-    await onSave();
     router.push("/dashboard");
   };
 
@@ -158,22 +190,29 @@ export function Header({ workflowId, onToggleHistory, historyOpen }: Props) {
         <div className="h-5 w-px bg-gray-200" />
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={onSave}
+          onChange={(e) => onNameChange(e.target.value)}
+          onBlur={() => void onSave()}
           className="bg-transparent text-sm font-semibold text-gray-900 focus:outline-none min-w-[100px] max-w-[200px] px-1"
           placeholder="Untitled workflow"
         />
         <button
-          onClick={onSave}
+          onClick={() => void onSave()}
+          disabled={saveState === "saving"}
           className={cn(
-            "size-7 rounded-full grid place-items-center transition-colors cursor-pointer",
-            saving
-              ? "text-green-500"
-              : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            "flex items-center gap-1 rounded-full px-2 py-1 transition-all duration-200 cursor-pointer text-xs font-semibold",
+            saveState === "saved"
+              ? "text-green-600 bg-green-50"
+              : saveState === "saving"
+                ? "text-gray-400 cursor-wait"
+                : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
           )}
-          title="Save"
+          title="Save workflow"
         >
-          <Save className="size-3.5" />
+          {saveState === "saved" ? (
+            <><Check className="size-3.5" /><span>Saved</span></>
+          ) : (
+            <Save className="size-3.5" />
+          )}
         </button>
       </div>
 
