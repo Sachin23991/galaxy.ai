@@ -33,7 +33,7 @@ export async function GET() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[GET /api/workflows]", msg);
-    return NextResponse.json({ error: "Internal server error", detail: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -61,6 +61,6 @@ export async function POST(req: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[POST /api/workflows]", msg);
-    return NextResponse.json({ error: "Internal server error", detail: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
