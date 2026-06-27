@@ -134,7 +134,7 @@ export function CropImageNode(props: NodeProps<WorkflowNode>) {
     <div
       data-running={isRunning ? "true" : "false"}
       className={cn(
-        "w-[280px] nf-node-card text-gray-800 overflow-hidden relative",
+        "w-[280px] nf-node-card text-gray-800 overflow-hidden",
         isRunning && "nf-pulse",
       )}
       onMouseEnter={() => setIsHovered(true)}

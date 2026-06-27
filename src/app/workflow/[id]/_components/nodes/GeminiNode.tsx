@@ -55,7 +55,7 @@ export function GeminiNode(props: NodeProps<WorkflowNode>) {
     <div
       data-running={isRunning ? "true" : "false"}
       className={cn(
-        "w-[360px] nf-node-card text-gray-800 overflow-hidden relative",
+        "w-[360px] nf-node-card text-gray-800 overflow-hidden",
         isRunning && "nf-pulse",
       )}
       onMouseEnter={() => setIsHovered(true)}

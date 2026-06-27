@@ -68,7 +68,7 @@ export function ResponseNode(props: NodeProps<WorkflowNode>) {
   return (
     <div
       className={cn(
-        "min-w-[260px] max-w-[550px] w-fit nf-node-card text-gray-800 overflow-hidden relative",
+        "min-w-[260px] max-w-[550px] w-fit nf-node-card text-gray-800 overflow-hidden",
         (isRunning || (isWorkflowRunning && !textToShow && mediaItems.length === 0)) && "nf-pulse",
       )}
       onMouseEnter={() => setIsHovered(true)}
