@@ -43,13 +43,30 @@ export function WorkflowCanvas({ workflowId }: Props) {
   const onConnect = useWorkflowStore((s) => s.onConnect);
   const setSelected = useWorkflowStore((s) => s.setSelected);
 
+  const hydrated = useWorkflowStore((s) => s.hydrated);
+  const prevSnapshotRef = useRef<string>("");
+
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Autosave: debounced PATCH on store changes
+  // Autosave: debounced PATCH on store changes — guarded by hydration state
   useEffect(() => {
+    if (!hydrated || !workflowId) return;
+
+    // Build a snapshot key to detect actual changes
+    const snapshot = JSON.stringify({ name, nodes, edges });
+
+    // Skip the very first render after hydration (the store just loaded from DB)
+    if (prevSnapshotRef.current === "") {
+      prevSnapshotRef.current = snapshot;
+      return;
+    }
+
+    // Skip if nothing actually changed
+    if (snapshot === prevSnapshotRef.current) return;
+    prevSnapshotRef.current = snapshot;
+
     const id = setTimeout(() => {
       const { name, nodes, edges } = useWorkflowStore.getState();
-      if (!workflowId) return;
       void fetch(`/api/workflows/${workflowId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -61,7 +78,28 @@ export function WorkflowCanvas({ workflowId }: Props) {
       }).catch(() => {});
     }, 1000);
     return () => clearTimeout(id);
-  }, [name, nodes, edges, workflowId]);
+  }, [name, nodes, edges, workflowId, hydrated]);
+
+  // Flush save on tab close / refresh
+  useEffect(() => {
+    if (!workflowId) return;
+    const onBeforeUnload = () => {
+      const { name, nodes, edges } = useWorkflowStore.getState();
+      // navigator.sendBeacon doesn't support custom headers, so use fetch with keepalive
+      fetch(`/api/workflows/${workflowId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          nodesJson: JSON.stringify(nodes),
+          edgesJson: JSON.stringify(edges),
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [workflowId]);
 
   const isValidConnection = useMemo(
     () => (c: Edge | Connection) => {

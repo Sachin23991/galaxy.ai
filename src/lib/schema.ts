@@ -39,6 +39,10 @@ export const NodeDataSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("response"),
     captured: z.string().optional(),
+    capturedMedia: z.array(z.object({
+      type: z.string(),
+      url: z.string(),
+    })).optional(),
   }),
 ]);
 

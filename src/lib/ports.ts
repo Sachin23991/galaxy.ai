@@ -91,4 +91,5 @@ export type NodeData =
   | {
       kind: "response";
       captured?: string;
+      capturedMedia?: { type: string; url: string }[];
     };

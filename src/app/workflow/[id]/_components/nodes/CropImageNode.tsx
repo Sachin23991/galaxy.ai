@@ -6,6 +6,7 @@ import type { WorkflowNode } from "@/store/useWorkflowStore";
 import { useWorkflowStore } from "@/store/useWorkflowStore";
 import { useExecutionStore } from "@/store/useExecutionStore";
 import { cn } from "@/lib/cn";
+import { NodeTooltip } from "./NodeTooltip";
 
 function CropNumericInput({
   nodeId,
@@ -119,6 +120,7 @@ export function CropImageNode(props: NodeProps<WorkflowNode>) {
   const removeNodes = useWorkflowStore((s) => s.removeNodes);
   const isRunning = useExecutionStore((s) => !!s.running[props.id]);
   const edges = useEdges();
+  const [isHovered, setIsHovered] = useState(false);
 
   const connectedHandles = new Set(
     edges
@@ -132,10 +134,18 @@ export function CropImageNode(props: NodeProps<WorkflowNode>) {
     <div
       data-running={isRunning ? "true" : "false"}
       className={cn(
-        "w-[280px] nf-node-card text-gray-800 overflow-hidden",
+        "w-[280px] nf-node-card text-gray-800 overflow-hidden relative",
         isRunning && "nf-pulse",
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      <NodeTooltip 
+        title="Crop Image"
+        description="Extracts a specific portion of an image using coordinates."
+        howItWorks="Takes an input image and crops it based on the defined X, Y, Width, and Height percentages. The output is a new image."
+        isVisible={isHovered}
+      />
       <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60">
         <div className="size-6 rounded bg-cyan-500/10 grid place-items-center text-cyan-600">
           <Scissors className="size-3.5" />

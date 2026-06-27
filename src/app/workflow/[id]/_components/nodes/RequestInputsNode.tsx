@@ -6,6 +6,7 @@ import type { RequestField } from "@/lib/ports";
 import { useWorkflowStore, type WorkflowNode } from "@/store/useWorkflowStore";
 import { useExecutionStore } from "@/store/useExecutionStore";
 import { cn } from "@/lib/cn";
+import { NodeTooltip } from "./NodeTooltip";
 
 export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
   const data = props.data as {
@@ -15,6 +16,7 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const isRunning = useExecutionStore((s) => !!s.running[props.id]);
   const edges = useEdges();
+  const [isHovered, setIsHovered] = useState(false);
 
   const connectedSourceHandles = useMemo(() => {
     // Request-Inputs fields are outputs; connected edges will target other nodes.
@@ -107,7 +109,15 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
         "w-[320px] nf-node-card text-gray-800 overflow-hidden",
         isRunning && "nf-pulse",
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      <NodeTooltip 
+        title="Request Inputs"
+        description="The starting point of your workflow where you provide text and media."
+        howItWorks="Define fields for prompts and uploads. The workflow uses these as variables when it runs."
+        isVisible={isHovered}
+      />
       <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60">
         <div className="size-6 rounded bg-amber-500/10 grid place-items-center text-amber-600">
           <FileText className="size-3.5" />
@@ -123,22 +133,11 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
             className="relative rounded-lg border border-gray-150 bg-gray-50/30 p-2.5 space-y-1.5"
           >
             <div className="flex items-center justify-between gap-2">
-              {(() => {
-                const handleId = `field-${field.id}:${field.type}`;
-                const connected = connectedSourceHandles.has(handleId);
-
-                return (
-                  <input
+              <input
                     value={field.label}
-                    disabled={connected}
                     onChange={(e) => updateField(field.id, { label: e.target.value })}
-                    className={cn(
-                      "min-w-0 flex-1 rounded bg-transparent px-1 py-0.5 text-xs font-semibold text-gray-700 outline-none focus:bg-white focus:ring-1 focus:ring-amber-500",
-                      connected && "opacity-50 cursor-not-allowed",
-                    )}
+                    className="min-w-0 flex-1 rounded bg-transparent px-1 py-0.5 text-xs font-semibold text-gray-700 outline-none focus:bg-white focus:ring-1 focus:ring-amber-500"
                   />
-                );
-              })()}
               <span className={cn(
                 "text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide",
                 field.type === "image" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
@@ -156,51 +155,27 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
               )}
             </div>
             {field.type === "text" ? (
-              (() => {
-                const handleId = `field-${field.id}:${field.type}`;
-                const connected = connectedSourceHandles.has(handleId);
-
-                return (
-                  <textarea
+              <textarea
                     value={field.value}
-                    disabled={connected}
                     onChange={(e) => updateField(field.id, { value: e.target.value })}
                     rows={2}
-                    className={cn(
-                      "nf-input resize-none bg-white",
-                      connected && "opacity-50 cursor-not-allowed bg-gray-50",
-                    )}
+                    className="nf-input resize-none bg-white"
                     placeholder="Enter text…"
                   />
-                );
-              })()
             ) : (
               <div className="space-y-1.5">
-                {(() => {
-                  const handleId = `field-${field.id}:${field.type}`;
-                  const connected = connectedSourceHandles.has(handleId);
-
-                  return (
-                    <>
                       <label
-                        className={cn(
-                          "flex items-center justify-center gap-2 border border-dashed border-gray-300 rounded-md py-2 text-xs text-gray-500 bg-white hover:border-blue-500 hover:text-blue-600 cursor-pointer transition-colors",
-                          connected && "opacity-50 cursor-not-allowed bg-gray-50",
-                        )}
-                        title={connected ? "Manual input disabled while connected" : undefined}
+                        className="flex items-center justify-center gap-2 border border-dashed border-gray-300 rounded-md py-2 text-xs text-gray-500 bg-white hover:border-blue-500 hover:text-blue-600 cursor-pointer transition-colors"
                       >
                         <ImageIcon className="size-3.5 text-blue-500" />
                         {uploadingFieldId === field.id
                           ? "Uploading…"
-                          : connected
-                            ? "Connected"
-                            : field.value
-                              ? "Replace"
-                              : "Upload image"}
+                          : field.value
+                            ? "Replace"
+                            : "Upload image"}
                         <input
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                          disabled={connected}
                           className="hidden"
                           onChange={(e) => {
                             const f = e.target.files?.[0];
@@ -216,9 +191,6 @@ export function RequestInputsNode(props: NodeProps<WorkflowNode>) {
                           className="w-full h-20 object-cover rounded border border-gray-200"
                         />
                       )}
-                    </>
-                  );
-                })()}
               </div>
             )}
             <Handle

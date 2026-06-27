@@ -10,7 +10,9 @@ import {
   Check,
   Undo2,
   Redo2,
+  LogOut,
 } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 import { useWorkflowStore } from "@/store/useWorkflowStore";
 import { useExecutionStore } from "@/store/useExecutionStore";
 import { useHistoryStore } from "@/store/useHistoryStore";
@@ -24,6 +26,7 @@ interface Props {
 
 export function Header({ workflowId, onToggleHistory, historyOpen }: Props) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const name = useWorkflowStore((s) => s.name);
   const setName = useWorkflowStore((s) => s.setName);
   const nodes = useWorkflowStore((s) => s.nodes);
@@ -213,6 +216,14 @@ export function Header({ workflowId, onToggleHistory, historyOpen }: Props) {
           ) : (
             <Save className="size-3.5" />
           )}
+        </button>
+        <div className="h-5 w-px bg-gray-200" />
+        <button
+          onClick={() => signOut({ redirectUrl: "/sign-in" })}
+          className="size-8 rounded-full hover:bg-red-50 grid place-items-center text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+          title="Sign out"
+        >
+          <LogOut className="size-3.5" />
         </button>
       </div>
 

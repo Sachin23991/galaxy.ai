@@ -236,8 +236,9 @@ function patchForNodeOutput(
     if (out?.outputImage) patch.outputImage = out.outputImage;
   }
   if (n.type === "response") {
-    const out = output as { captured?: string } | undefined;
+    const out = output as { captured?: string; capturedMedia?: { type: string; url: string }[] } | undefined;
     if (out?.captured) patch.captured = out.captured;
+    if (out?.capturedMedia) patch.capturedMedia = out.capturedMedia;
   }
   return Object.keys(patch).length > 0 ? patch : null;
 }

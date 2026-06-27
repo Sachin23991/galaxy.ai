@@ -138,7 +138,34 @@ export async function orchestrate(args: OrchestratorArgs) {
 
       if (node.type === "response") {
         const captured = firstStringInput(inputs);
-        const output = { captured };
+        const capturedMedia: { type: string; url: string }[] = [];
+
+        // Collect media inputs from connected handles
+        for (const [key, value] of Object.entries(inputs)) {
+          if (key.startsWith("in-media-image") || key.startsWith("in-image")) {
+            const urls = Array.isArray(value) ? value : [value];
+            for (const u of urls) {
+              if (typeof u === "string" && u.length > 0) capturedMedia.push({ type: "image", url: u });
+            }
+          } else if (key.startsWith("in-media-video") || key.startsWith("in-video")) {
+            const urls = Array.isArray(value) ? value : [value];
+            for (const u of urls) {
+              if (typeof u === "string" && u.length > 0) capturedMedia.push({ type: "video", url: u });
+            }
+          } else if (key.startsWith("in-media-audio") || key.startsWith("in-audio")) {
+            const urls = Array.isArray(value) ? value : [value];
+            for (const u of urls) {
+              if (typeof u === "string" && u.length > 0) capturedMedia.push({ type: "audio", url: u });
+            }
+          } else if (key.startsWith("in-media-file") || key.startsWith("in-file")) {
+            const urls = Array.isArray(value) ? value : [value];
+            for (const u of urls) {
+              if (typeof u === "string" && u.length > 0) capturedMedia.push({ type: "file", url: u });
+            }
+          }
+        }
+
+        const output = { captured, capturedMedia: capturedMedia.length > 0 ? capturedMedia : undefined };
         results[node.id] = captured;
         leafResults[node.id] = { status: "success", output };
         await args.onNodeSuccess(node.id, output, inputs);

@@ -16,6 +16,8 @@ import type { WorkflowNode } from "@/store/useWorkflowStore";
 import { useWorkflowStore } from "@/store/useWorkflowStore";
 import { useExecutionStore } from "@/store/useExecutionStore";
 import { cn } from "@/lib/cn";
+import { useState } from "react";
+import { NodeTooltip } from "./NodeTooltip";
 
 export function GeminiNode(props: NodeProps<WorkflowNode>) {
   const data = props.data as {
@@ -39,6 +41,7 @@ export function GeminiNode(props: NodeProps<WorkflowNode>) {
   const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange);
   const isRunning = useExecutionStore((s) => !!s.running[props.id]);
   const edges = useEdges();
+  const [isHovered, setIsHovered] = useState(false);
 
   const connectedHandles = new Set(
     edges
@@ -52,10 +55,18 @@ export function GeminiNode(props: NodeProps<WorkflowNode>) {
     <div
       data-running={isRunning ? "true" : "false"}
       className={cn(
-        "w-[360px] nf-node-card text-gray-800 overflow-hidden",
+        "w-[360px] nf-node-card text-gray-800 overflow-hidden relative",
         isRunning && "nf-pulse",
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      <NodeTooltip 
+        title="Gemini AI"
+        description="Processes prompts and media using Google's generative models."
+        howItWorks="Combines the text prompt, optional system instructions, and any connected media into a multimodal request sent to the Gemini API."
+        isVisible={isHovered}
+      />
       <div className="px-3 py-2.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 grid place-items-center text-violet-600">

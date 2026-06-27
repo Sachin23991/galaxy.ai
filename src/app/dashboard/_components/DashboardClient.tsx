@@ -2,8 +2,10 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Pencil, ArrowRight, Workflow } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowRight, Workflow, LogOut, Sparkles } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 import { cn } from "@/lib/cn";
+import { SAMPLE_NODES, SAMPLE_EDGES } from "@/lib/sampleWorkflow";
 
 function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
   if (status === 401) {
@@ -26,6 +28,7 @@ export function DashboardClient({
   initialWorkflows: WorkflowRow[];
 }) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [items, setItems] = useState<WorkflowRow[] | null>(initialWorkflows);
   const [, startTransition] = useTransition();
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(
@@ -86,19 +89,55 @@ export function DashboardClient({
   }, [router]);
 
   const onCreate = async () => {
-    setError(null);
-    const res = await fetch("/api/workflows", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) {
-      setError(`Failed to create (${res.status})`);
-      return;
+    try {
+      const res = await fetch("/api/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Untitled workflow" }),
+      });
+      if (!res.ok) {
+        handleAuthError(res.status, router);
+        throw new Error("Failed to create workflow");
+      }
+      const { workflow } = await res.json();
+      router.push(`/workflow/${workflow.id}`);
+    } catch (err) {
+      console.error(err);
+      alert("Error creating workflow");
     }
-    const data = await res.json();
-    router.refresh();
-    startTransition(() => router.push(`/workflow/${data.workflow.id}`));
+  };
+
+  const onCreateSample = async () => {
+    try {
+      // 1. Create a new empty workflow
+      const createRes = await fetch("/api/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Sample Workflow" }),
+      });
+      if (!createRes.ok) {
+        handleAuthError(createRes.status, router);
+        throw new Error("Failed to create workflow");
+      }
+      const { workflow } = await createRes.json();
+
+      // 2. Patch it with the sample data immediately
+      await fetch(`/api/workflows/${workflow.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Sample Workflow",
+          nodesJson: JSON.stringify(SAMPLE_NODES),
+          edgesJson: JSON.stringify(SAMPLE_EDGES),
+        }),
+      });
+
+      // 3. Navigate to it
+      router.push(`/workflow/${workflow.id}`);
+    } catch (err) {
+      console.error(err);
+      alert("Error creating sample workflow");
+    }
   };
 
   const onRename = async () => {
@@ -147,12 +186,19 @@ export function DashboardClient({
           <h1 className="text-lg font-extrabold tracking-tight text-gray-900 font-display">NextFlow</h1>
         </Link>
         <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-2">workflows</span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button
             onClick={onCreate}
             className="inline-flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-sm shadow-violet-100 transition-all cursor-pointer"
           >
             <Plus className="size-4" /> New workflow
+          </button>
+          <button
+            onClick={() => signOut({ redirectUrl: "/sign-in" })}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-600 px-3 py-2 text-sm font-semibold shadow-sm transition-all cursor-pointer"
+            title="Sign out"
+          >
+            <LogOut className="size-4" />
           </button>
         </div>
       </header>
@@ -192,110 +238,159 @@ export function DashboardClient({
           )}
 
           {items === null ? (
-            <div className="text-gray-400 text-sm py-16 text-center font-medium">Loading…</div>
-          ) : items.length === 0 ? (
-            <div className={cn(mounted && "animate-slide-up")}>
-              <EmptyState onCreate={onCreate} />
+            <div className="text-center py-12 text-sm text-gray-500 font-semibold animate-pulse">
+              Loading...
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((w, index) => (
-                <div
-                  key={w.id}
-                  style={mounted ? { animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' } : undefined}
-                  className={cn(
-                    "group relative flex flex-col justify-between p-6 rounded-2xl border border-gray-200/80 bg-white shadow-sm hover:shadow-md hover:border-violet-300 transition-all duration-300 hover:-translate-y-1",
-                    mounted ? "opacity-0 animate-slide-up" : "opacity-100"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="size-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-100/50 group-hover:bg-violet-650 group-hover:text-white transition-all duration-300 shadow-sm">
-                      <Workflow className="size-5" />
-                    </div>
-                    {/* Action buttons (rename, delete) */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <IconButton
-                        title="Rename"
-                        onClick={() => setRenaming({ id: w.id, value: w.name })}
-                      >
-                        <Pencil className="size-3.5" />
-                      </IconButton>
-                      <IconButton
-                        title="Delete"
-                        onClick={() => setDeleteConfirmId(w.id)}
-                      >
-                        <Trash2 className="size-3.5 text-rose-500" />
-                      </IconButton>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex-1">
-                    {renaming?.id === w.id ? (
-                      <div className="space-y-2 mt-1">
-                        <input
-                          autoFocus
-                          value={renaming.value}
-                          onChange={(e) =>
-                            setRenaming({ id: w.id, value: e.target.value })
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void onRename();
-                            if (e.key === "Escape") setRenaming(null);
-                          }}
-                          className="w-full bg-white border border-gray-305 rounded-lg px-3 py-1.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-900 font-sans"
-                        />
-                        <div className="flex gap-1.5 justify-end">
-                          <button
-                            onClick={onRename}
-                            className="text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 transition-colors cursor-pointer"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setRenaming(null)}
-                            className="text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 bg-white px-3 py-1.5 transition-colors cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Sample Workflow Card */}
+              <div className="group relative rounded-xl border border-transparent bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 p-[1px] shadow-sm hover:shadow-md transition-all">
+                <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="size-3" />
+                  Demo
+                </div>
+                <div className="flex h-full flex-col justify-between rounded-[11px] bg-white p-5">
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                        <Workflow className="size-4" />
                       </div>
-                    ) : (
-                      <>
-                        <Link
-                          href={`/workflow/${w.id}`}
-                          className="block font-bold text-gray-900 hover:text-violet-600 transition-colors text-[16px] leading-tight font-display mb-1 cursor-pointer"
-                        >
-                          {w.name}
-                        </Link>
-                        <span className="text-[10px] text-gray-400 font-mono select-all">ID: {w.id}</span>
-                      </>
-                    )}
+                    </div>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-violet-600 transition-colors">
+                      Sample Workflow
+                    </h3>
+                    <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                      A pre-wired example combining request inputs, image cropping, and Gemini 3.1 Pro vision analysis.
+                    </p>
                   </div>
-
-                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-450 font-medium">
-                    <div className="flex flex-col gap-0.5">
-                      <span>Edited</span>
-                      <span className="text-gray-600 font-bold">{mounted ? new Date(w.updatedAt).toLocaleDateString() : ""}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {w.running && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] text-amber-700 font-semibold animate-pulse">
-                          <span className="size-1.5 rounded-full bg-amber-500" />
-                          Running
-                        </span>
-                      )}
-                      <Link
-                        href={`/workflow/${w.id}`}
-                        className="size-8 rounded-lg bg-gray-50 hover:bg-violet-50 hover:text-violet-600 border border-gray-200 flex items-center justify-center text-gray-600 transition-all duration-200 cursor-pointer"
-                        title="Open Canvas"
-                      >
-                        <ArrowRight className="size-4" />
-                      </Link>
-                    </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <button
+                      onClick={onCreateSample}
+                      className="text-sm font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 cursor-pointer group/btn"
+                    >
+                      Try Sample <ArrowRight className="size-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {items.length === 0 ? (
+                <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-100">
+                    <Workflow className="h-6 w-6 text-violet-600" />
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-gray-900">
+                    No workflows yet
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Get started by creating a new workflow or trying the sample above.
+                  </p>
+                  <button
+                    onClick={onCreate}
+                    className="mt-6 inline-flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="size-4" /> Create Workflow
+                  </button>
+                </div>
+              ) : (
+                items.map((w, index) => (
+                  <div
+                    key={w.id}
+                    style={mounted ? { animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' } : undefined}
+                    className={cn(
+                      "group relative flex flex-col justify-between p-6 rounded-2xl border border-gray-200/80 bg-white shadow-sm hover:shadow-md hover:border-violet-300 transition-all duration-300 hover:-translate-y-1",
+                      mounted ? "opacity-0 animate-slide-up" : "opacity-100"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="size-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-100/50 group-hover:bg-violet-650 group-hover:text-white transition-all duration-300 shadow-sm">
+                        <Workflow className="size-5" />
+                      </div>
+                      {/* Action buttons (rename, delete) */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <IconButton
+                          title="Rename"
+                          onClick={() => setRenaming({ id: w.id, value: w.name })}
+                        >
+                          <Pencil className="size-3.5" />
+                        </IconButton>
+                        <IconButton
+                          title="Delete"
+                          onClick={() => setDeleteConfirmId(w.id)}
+                        >
+                          <Trash2 className="size-3.5 text-rose-500" />
+                        </IconButton>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex-1">
+                      {renaming?.id === w.id ? (
+                        <div className="space-y-2 mt-1">
+                          <input
+                            autoFocus
+                            value={renaming.value}
+                            onChange={(e) =>
+                              setRenaming({ id: w.id, value: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void onRename();
+                              if (e.key === "Escape") setRenaming(null);
+                            }}
+                            className="w-full bg-white border border-gray-305 rounded-lg px-3 py-1.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-900 font-sans"
+                          />
+                          <div className="flex gap-1.5 justify-end">
+                            <button
+                              onClick={onRename}
+                              className="text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 transition-colors cursor-pointer"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setRenaming(null)}
+                              className="text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 bg-white px-3 py-1.5 transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Link
+                            href={`/workflow/${w.id}`}
+                            className="block font-bold text-gray-900 hover:text-violet-600 transition-colors text-[16px] leading-tight font-display mb-1 cursor-pointer"
+                          >
+                            {w.name}
+                          </Link>
+                          <span className="text-[10px] text-gray-400 font-mono select-all">ID: {w.id}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-450 font-medium">
+                      <div className="flex flex-col gap-0.5">
+                        <span>Edited</span>
+                        <span className="text-gray-600 font-bold">{mounted ? new Date(w.updatedAt).toLocaleDateString() : ""}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {w.running && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] text-amber-700 font-semibold animate-pulse">
+                            <span className="size-1.5 rounded-full bg-amber-500" />
+                            Running
+                          </span>
+                        )}
+                        <Link
+                          href={`/workflow/${w.id}`}
+                          className="size-8 rounded-lg bg-gray-50 hover:bg-violet-50 hover:text-violet-600 border border-gray-200 flex items-center justify-center text-gray-600 transition-all duration-200 cursor-pointer"
+                          title="Open Canvas"
+                        >
+                          <ArrowRight className="size-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
