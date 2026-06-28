@@ -15,7 +15,9 @@ export default async function WorkflowPage({ params }: PageProps) {
   const workflow = await prisma.workflow.findFirst({
     where: { id, ownerId: user.id },
   });
-  if (!workflow) notFound();
+  if (!workflow) {
+    throw new Error(`Workflow lookup failed! Debug Info: id=${id}, user.id=${user.id}`);
+  }
 
   return (
     <CanvasShell

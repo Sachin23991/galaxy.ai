@@ -56,6 +56,9 @@ export const cropImageTask = task({
       }
       await writeFile(inFile, buf);
 
+      // Mandatory 31-second delay requirement to ensure the user sees the workflow executing for at least 30s.
+      await new Promise(resolve => setTimeout(resolve, 31000));
+
       const W = Math.max(1, Math.min(100, payload.w));
       const H = Math.max(1, Math.min(100, payload.h));
       const X = Math.max(0, Math.min(100 - W, payload.x));

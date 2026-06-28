@@ -29,33 +29,39 @@ export function GuidePanel() {
   const steps = [
     {
       id: 1,
-      title: "Add Input Fields",
-      desc: "Configure text inputs or image uploads in your starting 'Request Inputs' node.",
+      title: "Step 1: Open",
+      desc: "Open a new workflow and configure your starting 'Request Inputs' node.",
       done: hasFields,
     },
     {
       id: 2,
-      title: "Place Middle Nodes",
-      desc: "Click '+' in the bottom center bar to add 'Crop Image' or 'Gemini 3.1 Pro'.",
-      done: hasMiddleNode,
+      title: "Step 2: Arrange",
+      desc: "Select 'Crop Image' from the '+' menu in the bottom toolbar.",
+      done: nodes.some((n) => n.type === "cropImage"),
     },
     {
       id: 3,
-      title: "Connect Your Ports",
-      desc: "Drag lines from source output handles (Right) to target input handles (Left).",
-      done: hasConnections,
+      title: "Step 3: Add Gemini",
+      desc: "Add another step for 'Gemini 3.1 Pro' from the '+' menu.",
+      done: nodes.some((n) => n.type === "gemini"),
     },
     {
       id: 4,
-      title: "Route to Response",
-      desc: "Connect the output of your GPT or Image node to the 'Response' node target handle.",
-      done: connectedToResponse,
+      title: "Step 4: Connect",
+      desc: "Connect your nodes together, routing the final output to the 'Response' node.",
+      done: connectedToResponse && hasConnections,
     },
     {
       id: 5,
-      title: "Execute Workflow",
-      desc: "Click 'Play' in the header to run your pipeline. Make sure you have balance credits!",
+      title: "Step 5: Run & View Logs",
+      desc: "Run the workflow and show logs in the History tab to verify it works.",
       done: hasRun,
+    },
+    {
+      id: 6,
+      title: "Step 6: Save",
+      desc: "Save the workflow using the auto-save functionality (happens automatically!).",
+      done: hasRun, // Automatically true if they've successfully run it and auto-save caught it
     },
   ];
 
