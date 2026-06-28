@@ -176,7 +176,7 @@ export function DashboardClient({
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-gray-800 font-sans">
       <header className="border-b border-gray-250/80 bg-white px-6 py-4 flex items-center gap-3 shadow-sm">
-        <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-85 transition-opacity cursor-pointer">
+        <Link href="/dashboard" prefetch={false} className="flex items-center gap-3 hover:opacity-85 transition-opacity cursor-pointer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="/ChatGPT Image Jun 19, 2026, 04_29_44 PM (1).png" 
@@ -357,6 +357,7 @@ export function DashboardClient({
                         <>
                           <Link
                             href={`/workflow/${w.id}`}
+                            prefetch={false}
                             className="block font-bold text-gray-900 hover:text-violet-600 transition-colors text-[16px] leading-tight font-display mb-1 cursor-pointer"
                           >
                             {w.name}
@@ -381,6 +382,7 @@ export function DashboardClient({
                         )}
                         <Link
                           href={`/workflow/${w.id}`}
+                          prefetch={false}
                           className="size-8 rounded-lg bg-gray-50 hover:bg-violet-50 hover:text-violet-600 border border-gray-200 flex items-center justify-center text-gray-600 transition-all duration-200 cursor-pointer"
                           title="Open Canvas"
                         >
